@@ -3,6 +3,7 @@ const DNA_LENGTH                = 64;
 const HEAL_PER_ORG              = 25;
 const HEAL_PER_MIN              = 30;
 const HEALTH_REDUCING_PER_CICLE = 1;
+const HEALTH_NEEDED_TO_MULTIP   = 130;
 
 const pixel         = 5;
 const fw            = cvs.width / pixel;
@@ -75,6 +76,9 @@ function Cell(settings) {
 				this.alifeQ = false;
 			}
 
+			if (this.health > HEALTH_NEEDED_TO_MULTIP)
+				this.multiplate();
+
 			LCIt++;
 		}
 
@@ -131,6 +135,20 @@ function Cell(settings) {
 			this.health += HEAL_PER_MIN;
 			field[this.y][this.x] = this;
 		}
+	}
+
+	this.multiplate = function () {
+		for (var i = this.y - 1; i < this.y + 1; i++)
+			for (var j = this.x - 1; j < this.x + 1; j++)
+				if (i >= 0 && j >= 0) 
+					if (field[i][j] == 0) {
+						cells.push(new Cell({
+							start_pos: {x: j, y: i},
+							start_health: this.health / 2
+						}));
+						this.health = Math.round(this.health / 2);
+						field[i][j] = cells[cells.length - 1];
+					}
 	}
 
 	function DxDyByDir (dir) {
@@ -191,4 +209,9 @@ function draw() {
 
 	cells.forEach(function (a) { a.lifeCicle() });
 	cells = cells.filter(function(a) {return a.alifeQ});
+
+	for (var i = 0; i < fh; i++) 
+		for (var j = 0; j < fw; j++) 
+			if (field[i][j] != 1 && field[i][j] != 2 && field[i][j] != 3 && Math.random() > 0.995)
+				field[i][j] = 3;
 }
