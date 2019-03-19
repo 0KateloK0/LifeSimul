@@ -5,6 +5,7 @@ const HEAL_PER_MIN              = 30;
 const HEALTH_REDUCING_PER_CICLE = 1;
 const HEALTH_NEEDED_TO_MULTIP   = 150;
 const MAX_SEED_ALIFETIME        = 5;
+const PLANTS_DNA_LENGTH         = 32;
 
 const pixel         = 5;
 const fw            = cvs.width / pixel;
@@ -21,9 +22,14 @@ function init() {
 				field[i][j] = 0;
 			else if (k < 0.75)
 				field[i][j] = 3;
-			else {
-				cells.push(new Cell({
-					start_pos: {x: j, y: i},
+			else if (k < 0.9) {
+				cells.push(new Animal({
+					start_pos: {x: j, y: i}
+				}));
+				field[i][j] = cells[cells.length - 1];
+			} else {
+				cells.push(new Plant({
+					start_pos: {x: j, y: i}
 				}));
 				field[i][j] = cells[cells.length - 1];
 			}
@@ -45,7 +51,7 @@ function Animal(settings) {
 	this.health = settings.start_health || START_HEALTH;
 	this.alifeQ = true;
 
-	this.color = 'green';
+	this.color = 'brown';
 
 	if (!!settings.start_DNA) {
 		this.DNA = settings.start_DNA;
@@ -144,11 +150,11 @@ function Animal(settings) {
 	}
 
 	this.multiplate = function () {
-		for (var i = this.y - 1; i < this.y + 1; i++)
+		loop: for (var i = this.y - 1; i < this.y + 1; i++)
 			for (var j = this.x - 1; j < this.x + 1; j++)
 				if (i >= 0 && j >= 0) 
 					if (field[i][j] == 0) {
-						cells.push(new Cell({
+						cells.push(new Animal({
 							start_pos: {x: j, y: i},
 							start_health: Math.round(this.health / 2),
 							start_DNA: this.DNA,
@@ -156,6 +162,7 @@ function Animal(settings) {
 						}));
 						this.health = Math.round(this.health / 2);
 						field[i][j] = cells[cells.length - 1];
+						break loop;
 					}
 	}
 
@@ -203,33 +210,105 @@ function Plant (settings) {
 	this.x = settings.start_pos.x;
 	this.y = settings.start_pos.y;
 
-	this.DNA = settings.start_DNA;
+	this.alifeQ = true;
 
-	
+	if (!!settings.start_DNA)
+		this.DNA = settings.start_DNA;
+	else {
+		this.DNA = [];
+		for (var i = 0; i < PLANTS_DNA_LENGTH; i++)
+			this.DNA.push( Math.floor( Math.random() * PLANTS_DNA_LENGTH ) );
+	}
+
+	this.DNA_pos = 0;
+
+	this.health = START_HEALTH;
+
+	this.lifeCicle = function () {
+		if (this.DNA[this.DNA_pos] < 8) {
+			this.photosynthesis();
+			this.DNA_pos = (this.DNA_pos + this.DNA[this.DNA_pos]) % PLANTS_DNA_LENGTH;
+		}
+		else
+			this.DNA_pos = (this.DNA_pos + this.DNA[this.DNA_pos] % 8) % PLANTS_DNA_LENGTH;
+
+		this.health -= HEALTH_REDUCING_PER_CICLE;
+		if (this.health < 0) {
+			field[this.y][this.x] = 2;
+			this.alifeQ = false;
+		}
+
+		if (this.health > HEALTH_NEEDED_TO_MULTIP)
+			this.multiplate();
+	}
+
+	this.photosynthesis = function () {
+		if (this.y < 20)
+			this.health += 5;
+		else if (this.y < 40)
+			this.health += 4;
+		else if (this.y < 60)
+			this.health += 3;
+		else if (this.y < 80)
+			this.health += 2;
+		else
+			this.health += 1;
+	}
+
+	this.multiplate = function () {
+		loop: for (var i = this.y - 1; i < this.y + 1; i++)
+			for (var j = this.x - 1; j < this.x + 1; j++)
+				if (i >= 0 && j >= 0) 
+					if (field[i][j] == 0) {
+						cells.push(new Seed({
+							start_pos: {x: j, y: i},
+							start_DNA: this.DNA,
+							mutantQ: Math.random() / 4
+						}));
+						this.health = Math.round(this.health / 2);
+						field[i][j] = cells[cells.length - 1];
+						break loop;
+					}
+	}
+
+	this.valueOf = function () { return 4 }
+	this.toString = function () {
+		return 'x: ' + this.x + ', y: ' + this.y + ', health: ' + this.health;
+	}
+
+	return this;
 }
 
 function Seed (settings) {
 	this.alifeTime = 0;
 
-	this.DNA = settings.start_DNA;
-	if (settings.mutantQ) {
-		k = Math.floor( Math.random() * DNA_LENGTH );
-		this.DNA[k] = Math.floor( Math.random() * DNA_LENGTH );
-	}
-
 	this.x = settings.start_pos.x;
 	this.y = settings.start_pos.y;
+
+	this.alifeQ = true;
 
 	this.setup = settings;
 
 	this.lifeCicle = function() {
 		if (this.alifeTime > MAX_SEED_ALIFETIME) {
-			cells.pop();
+			for (var i = 0; i < cells.length; i++)
+				if (cells[i] == this){
+					cells.splice(i, 1);
+					break;
+				}
 			cells.push(new Plant(this.setup));
 			field[this.y][this.x] = cells[cells.length - 1];
+			this.alifeQ = false;
 		} else
 			this.alifeTime++;
 	}
+
+	this.valueOf = function () { return 5 }
+	this.toString = function () {
+		return 'x: ' + this.x + ', y: ' + this.y + ', health: ' + this.health;
+	}
+
+	return this;
 }
 
 function draw() {
@@ -247,6 +326,10 @@ function draw() {
 				ctx.fillStyle = 'grey';
 			else if (field[i][j] == 3)
 				ctx.fillStyle = 'blue';
+			else if (field[i][j] == 4)
+				ctx.fillStyle = 'green';
+			else if (field[i][j] == 5)
+				ctx.fillStyle = 'orange';
 			ctx.fillRect(i * pixel, j * pixel, pixel, pixel);
 		}
 
@@ -255,19 +338,7 @@ function draw() {
 
 	for (var i = 0; i < fh; i++) 
 		for (var j = 0; j < fw; j++) 
-			if (field[i][j] != 1 && field[i][j] != 2 && field[i][j] != 3 && Math.random() > 0.995)
+			if (field[i][j] != 1 && field[i][j] != 2 && field[i][j] != 3 &&
+				field[i][j] != 4 && field[i][j] != 5 && Math.random() > 0.995)
 				field[i][j] = 3;
 }
-
-/*this.photosynthesis = function () {
-		if (this.y < 20)
-			this.health += 5;
-		else if (this.y < 40)
-			this.health += 4;
-		else if (this.y < 60)
-			this.health += 3;
-		else if (this.y < 80)
-			this.health += 2;
-		else
-			this.health += 1;
-	}*/
