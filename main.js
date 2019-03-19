@@ -1,7 +1,9 @@
-const START_HEALTH  = 100;
-const DNA_LENGTH    = 64;
-const HEAL_PER_ORG  = 25;
-const HEAL_PER_MIN  = 30;
+const START_HEALTH              = 100;
+const DNA_LENGTH                = 64;
+const HEAL_PER_ORG              = 25;
+const HEAL_PER_MIN              = 30;
+const HEALTH_REDUCING_PER_CICLE = 1;
+
 const pixel         = 5;
 const fw            = cvs.width / pixel;
 const fh            = cvs.height / pixel;
@@ -19,7 +21,7 @@ function init() {
 				field[i][j] = 3;
 			else {
 				cells.push(new Cell({
-					start_pos: {x: i, y: j},
+					start_pos: {x: j, y: i},
 				}));
 				field[i][j] = cells[cells.length - 1];
 			}
@@ -39,6 +41,7 @@ function Cell(settings) {
 	this.y = settings.start_pos.y || 0;
 
 	this.health = settings.start_health || START_HEALTH;
+	this.alifeQ = true;
 
 	this.color = 'green';
 
@@ -54,17 +57,23 @@ function Cell(settings) {
 	 */
 	this.lifeCicle = function() {
 		var LCIt = 0;
-		while (LCIt < 8) {
+		while (LCIt < 8 && this.alifeQ) {
 			var DNA_now = this.DNA[this.DNA_pos];
 
 			if (DNA_now < 8) {
-				this.move(DNA_now);
+				this.move(DNA_now % 8);
 				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
 			} else if (DNA_now < 16) {
-				this.eat(DNA_now);
+				this.eat(DNA_now % 8);
 				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
 			} else
 				this.DNA_pos = (this.DNA_pos + DNA_now) % DNA_LENGTH;
+
+			this.health -= HEALTH_REDUCING_PER_CICLE;
+			if (this.health < 0) {
+				field[this.y][this.x] = 2;
+				this.alifeQ = false;
+			}
 
 			LCIt++;
 		}
@@ -95,21 +104,21 @@ function Cell(settings) {
 		var dx = DCoord.x,
 			dy = DCoord.y;
 
-		var tx = (this.x + dx) % fw,
-			ty = (this.y + dy) % fh;
+		var tx = (this.x + dx + fw) % fw,
+			ty = (this.y + dy + fh) % fh;
 
-		if (field[ty][tx] == 0) {
+		/*if (field[ty][tx] == 0) {
 			field[this.y][this.x] = 0;
 			this.x = tx;
 			this.y = ty;
 			field[this.y][this.x] = this;
-		} else if (field[ty][tx] == 1) {
+		} *//*else if (field[ty][tx] == 1) {
 			field[this.y][this.x] = 0;
 			this.x = tx;
 			this.y = ty;
 			this.health += Math.floor(field[ty][tx].health / 4);
 			field[this.y][this.x] = this;
-		} else if (field[ty][tx] == 2) {
+		}*/ /*else */if (field[ty][tx] == 2) {
 			field[this.y][this.x] = 0;
 			this.x = tx;
 			this.y = ty;
@@ -181,4 +190,5 @@ function draw() {
 		}
 
 	cells.forEach(function (a) { a.lifeCicle() });
+	cells = cells.filter(function(a) {return a.alifeQ});
 }
