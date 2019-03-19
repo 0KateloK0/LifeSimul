@@ -2,14 +2,31 @@ const START_HEALTH  = 100;
 const DNA_LENGTH    = 64;
 const HEAL_PER_ORG  = 25;
 const HEAL_PER_MIN  = 30;
-const fw            = 250;
-const fh            = 250;
+const pixel         = 5;
+const fw            = cvs.width / pixel;
+const fh            = cvs.height / pixel;
 
-var field = [];
-for (var i = 0; i < fh; i++){
-	field[i] = [];
-	for (var j = 0; j < fw; j++)
-		field[i][j] = 0;
+function init() {
+	field = [];
+	cells = [];
+	for (var i = 0; i < fh; i++){
+		field[i] = [];
+		for (var j = 0; j < fw; j++){
+			k = Math.random();
+			if (k < 0.5)
+				field[i][j] = 0;
+			else if (k < 0.75)
+				field[i][j] = 3;
+			else {
+				cells.push(new Cell({
+					start_pos: {x: i, y: j},
+				}));
+				field[i][j] = cells[cells.length - 1];
+			}
+		}
+	}
+
+	draw();
 }
 
 /**
@@ -22,6 +39,8 @@ function Cell(settings) {
 	this.y = settings.start_pos.y || 0;
 
 	this.health = settings.start_health || START_HEALTH;
+
+	this.color = 'green';
 
 	this.DNA = [];
 	for (var i = 0; i < DNA_LENGTH; i++)
@@ -40,11 +59,12 @@ function Cell(settings) {
 
 			if (DNA_now < 8) {
 				this.move(DNA_now);
-				this.DNA_pos += DNA_now % DNA_LENGTH;
+				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
 			} else if (DNA_now < 16) {
 				this.eat(DNA_now);
-				this.DNA_pos += DNA_now % DNA_LENGTH;
-			}
+				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
+			} else
+				this.DNA_pos = (this.DNA_pos + DNA_now) % DNA_LENGTH;
 
 			LCIt++;
 		}
@@ -57,8 +77,8 @@ function Cell(settings) {
 		var dx = DCoord.x;
 		var dy = DCoord.y;
 
-		var tx = (this.x + dx) % fw,
-			ty = (this.y + dy) % fh;
+		var tx = (this.x + dx + fw) % fw,
+			ty = (this.y + dy + fh) % fh;
 
 		if (field[ty][tx] == 0) {
 			field[this.y][this.x] = 0;
@@ -104,7 +124,7 @@ function Cell(settings) {
 		}
 	}
 
-	function DxDyByDir (diw) {
+	function DxDyByDir (dir) {
 		var dx = 0,
 			dy = 0;
 
@@ -140,4 +160,25 @@ function Cell(settings) {
 	}
 
 	return this;
+}
+
+function draw() {
+	if (cells.length > 0)
+		requestAnimationFrame(draw);
+
+	ctx.clearRect(0, 0, cvs.width, cvs.height);
+	for (var i = 0; i < fh; i++)
+		for (var j = 0; j < fw; j++) {
+			if (field[i][j] == 0)
+				ctx.fillStyle = 'white';
+			else if (field[i][j] == 1)
+				ctx.fillStyle = field[i][j].color;
+			else if (field[i][j] == 2)
+				ctx.fillStyle = 'grey';
+			else if (field[i][j] == 3)
+				ctx.fillStyle = 'blue';
+			ctx.fillRect(i * pixel, j * pixel, pixel, pixel);
+		}
+
+	cells.forEach(function (a) { a.lifeCicle() });
 }
