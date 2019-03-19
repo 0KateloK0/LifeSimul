@@ -1,7 +1,9 @@
-const START_HEALTH = 100;
-const DNA_LENGTH  = 64;
-const fw          = 250;
-const fh          = 250;
+const START_HEALTH  = 100;
+const DNA_LENGTH    = 64;
+const HEAL_PER_ORG  = 25;
+const HEAL_PER_MIN  = 30;
+const fw            = 250;
+const fh            = 250;
 
 var field = [];
 for (var i = 0; i < fh; i++){
@@ -39,6 +41,9 @@ function Cell(settings) {
 			if (DNA_now < 8) {
 				this.move(DNA_now);
 				this.DNA_pos += DNA_now % DNA_LENGTH;
+			} else if (DNA_now < 16) {
+				this.eat(DNA_now);
+				this.DNA_pos += DNA_now % DNA_LENGTH;
 			}
 
 			LCIt++;
@@ -48,6 +53,58 @@ function Cell(settings) {
 	}
 
 	this.move = function(dir) {
+		var DCoord = DxDyByDir(dir);
+		var dx = DCoord.x;
+		var dy = DCoord.y;
+
+		var tx = (this.x + dx) % fw,
+			ty = (this.y + dy) % fh;
+
+		if (field[ty][tx] == 0) {
+			field[this.y][this.x] = 0;
+			this.x = tx;
+			this.y = ty;
+			field[ty][tx] = this;
+		}
+
+		return this;
+	}
+
+	this.eat = function (dir) {
+		var DCoord = DxDyByDir(dir);
+		var dx = DCoord.x,
+			dy = DCoord.y;
+
+		var tx = (this.x + dx) % fw,
+			ty = (this.y + dy) % fh;
+
+		if (field[ty][tx] == 0) {
+			field[this.y][this.x] = 0;
+			this.x = tx;
+			this.y = ty;
+			field[this.y][this.x] = this;
+		} else if (field[ty][tx] == 1) {
+			field[this.y][this.x] = 0;
+			this.x = tx;
+			this.y = ty;
+			this.health += Math.floor(field[ty][tx].health / 4);
+			field[this.y][this.x] = this;
+		} else if (field[ty][tx] == 2) {
+			field[this.y][this.x] = 0;
+			this.x = tx;
+			this.y = ty;
+			this.health += HEAL_PER_ORG;
+			field[this.y][this.x] = this;
+		} else if (field[ty][tx] == 3) {
+			field[this.y][this.x] = 0;
+			this.x = tx;
+			this.y = ty;
+			this.health += HEAL_PER_MIN;
+			field[this.y][this.x] = this;
+		}
+	}
+
+	function DxDyByDir (diw) {
 		var dx = 0,
 			dy = 0;
 
@@ -74,17 +131,7 @@ function Cell(settings) {
 				break;
 		}
 
-		var tx = (this.x + dx) % fw,
-			ty = (this.y + dy) % fh;
-
-		if (field[ty][tx] == 0) {
-			field[this.y][this.x] = 0;
-			this.x = tx;
-			this.y = ty;
-			field[ty][tx] = this;
-		}
-
-		return this;
+		return {x: dx, y: dy}
 	}
 
 	this.valueOf = function () { return 1 }
