@@ -3,7 +3,7 @@ const DNA_LENGTH                = 64;
 const HEAL_PER_ORG              = 25;
 const HEAL_PER_MIN              = 30;
 const HEALTH_REDUCING_PER_CICLE = 1;
-const HEALTH_NEEDED_TO_MULTIP   = 130;
+const HEALTH_NEEDED_TO_MULTIP   = 150;
 
 const pixel         = 5;
 const fw            = cvs.width / pixel;
@@ -46,9 +46,18 @@ function Cell(settings) {
 
 	this.color = 'green';
 
-	this.DNA = [];
-	for (var i = 0; i < DNA_LENGTH; i++)
-		this.DNA[i] = Math.floor( Math.random() * DNA_LENGTH );
+	if (!!settings.start_DNA) {
+		this.DNA = settings.start_DNA;
+		if (settings.mutantQ) {
+			k = Math.floor( Math.random() * DNA_LENGTH );
+			this.DNA[k] = Math.floor( Math.random() * DNA_LENGTH );
+		}
+	} else {
+		this.DNA = [];
+		for (var i = 0; i < DNA_LENGTH; i++)
+			this.DNA[i] = Math.floor( Math.random() * DNA_LENGTH );
+	}
+
 
 	this.DNA_pos = 0;
 
@@ -66,6 +75,9 @@ function Cell(settings) {
 				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
 			} else if (DNA_now < 16) {
 				this.eat(DNA_now % 8);
+				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
+			} else if (DNA_now < 24) {
+				this.photosynthesis();
 				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
 			} else
 				this.DNA_pos = (this.DNA_pos + DNA_now) % DNA_LENGTH;
@@ -111,18 +123,14 @@ function Cell(settings) {
 		var tx = (this.x + dx + fw) % fw,
 			ty = (this.y + dy + fh) % fh;
 
-		/*if (field[ty][tx] == 0) {
-			field[this.y][this.x] = 0;
-			this.x = tx;
-			this.y = ty;
-			field[this.y][this.x] = this;
-		} *//*else if (field[ty][tx] == 1) {
+		if (field[ty][tx] == 1) {
+			field[ty][tx].alifeQ = false;
 			field[this.y][this.x] = 0;
 			this.x = tx;
 			this.y = ty;
 			this.health += Math.floor(field[ty][tx].health / 4);
 			field[this.y][this.x] = this;
-		}*/ /*else */if (field[ty][tx] == 2) {
+		} else if (field[ty][tx] == 2) {
 			field[this.y][this.x] = 0;
 			this.x = tx;
 			this.y = ty;
@@ -144,11 +152,26 @@ function Cell(settings) {
 					if (field[i][j] == 0) {
 						cells.push(new Cell({
 							start_pos: {x: j, y: i},
-							start_health: this.health / 2
+							start_health: Math.round(this.health / 2),
+							start_DNA: this.DNA,
+							mutantQ: Math.random() / 4
 						}));
 						this.health = Math.round(this.health / 2);
 						field[i][j] = cells[cells.length - 1];
 					}
+	}
+
+	this.photosynthesis = function () {
+		if (this.y < 20)
+			this.health += 5;
+		else if (this.y < 40)
+			this.health += 4;
+		else if (this.y < 60)
+			this.health += 3;
+		else if (this.y < 80)
+			this.health += 2;
+		else
+			this.health += 1;
 	}
 
 	function DxDyByDir (dir) {
