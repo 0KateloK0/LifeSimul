@@ -4,6 +4,7 @@ const HEAL_PER_ORG              = 25;
 const HEAL_PER_MIN              = 30;
 const HEALTH_REDUCING_PER_CICLE = 1;
 const HEALTH_NEEDED_TO_MULTIP   = 150;
+const MAX_SEED_ALIFETIME        = 5;
 
 const pixel         = 5;
 const fw            = cvs.width / pixel;
@@ -37,7 +38,7 @@ function init() {
  * @param  {} obj it contains: start_pos, start_health
  * @return {cell}
  */
-function Cell(settings) {
+function Animal(settings) {
 	this.x = settings.start_pos.x || 0;
 	this.y = settings.start_pos.y || 0;
 
@@ -75,9 +76,6 @@ function Cell(settings) {
 				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
 			} else if (DNA_now < 16) {
 				this.eat(DNA_now % 8);
-				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
-			} else if (DNA_now < 24) {
-				this.photosynthesis();
 				this.DNA_pos = (this.DNA_pos + DNA_now % 8) % DNA_LENGTH;
 			} else
 				this.DNA_pos = (this.DNA_pos + DNA_now) % DNA_LENGTH;
@@ -161,18 +159,7 @@ function Cell(settings) {
 					}
 	}
 
-	this.photosynthesis = function () {
-		if (this.y < 20)
-			this.health += 5;
-		else if (this.y < 40)
-			this.health += 4;
-		else if (this.y < 60)
-			this.health += 3;
-		else if (this.y < 80)
-			this.health += 2;
-		else
-			this.health += 1;
-	}
+	
 
 	function DxDyByDir (dir) {
 		var dx = 0,
@@ -212,6 +199,39 @@ function Cell(settings) {
 	return this;
 }
 
+function Plant (settings) {
+	this.x = settings.start_pos.x;
+	this.y = settings.start_pos.y;
+
+	this.DNA = settings.start_DNA;
+
+	
+}
+
+function Seed (settings) {
+	this.alifeTime = 0;
+
+	this.DNA = settings.start_DNA;
+	if (settings.mutantQ) {
+		k = Math.floor( Math.random() * DNA_LENGTH );
+		this.DNA[k] = Math.floor( Math.random() * DNA_LENGTH );
+	}
+
+	this.x = settings.start_pos.x;
+	this.y = settings.start_pos.y;
+
+	this.setup = settings;
+
+	this.lifeCicle = function() {
+		if (this.alifeTime > MAX_SEED_ALIFETIME) {
+			cells.pop();
+			cells.push(new Plant(this.setup));
+			field[this.y][this.x] = cells[cells.length - 1];
+		} else
+			this.alifeTime++;
+	}
+}
+
 function draw() {
 	if (cells.length > 0)
 		requestAnimationFrame(draw);
@@ -238,3 +258,16 @@ function draw() {
 			if (field[i][j] != 1 && field[i][j] != 2 && field[i][j] != 3 && Math.random() > 0.995)
 				field[i][j] = 3;
 }
+
+/*this.photosynthesis = function () {
+		if (this.y < 20)
+			this.health += 5;
+		else if (this.y < 40)
+			this.health += 4;
+		else if (this.y < 60)
+			this.health += 3;
+		else if (this.y < 80)
+			this.health += 2;
+		else
+			this.health += 1;
+	}*/
