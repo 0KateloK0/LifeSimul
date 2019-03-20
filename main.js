@@ -18,8 +18,8 @@ function init() {
 			k = Math.random();
 			if (k < 0.5)
 				field[i][j] = 0;
-			else if (k < 0.75)
-				field[i][j] = 3;
+			/*else if (k < 0.75)
+				field[i][j] = 3;*/
 			else {
 				cells.push(new Cell({
 					start_pos: {x: j, y: i},
@@ -93,6 +93,14 @@ function Cell(settings) {
 
 			LCIt++;
 		}
+
+		for (var i = this.y - 1; i < this.y + 1; i++)
+			for (var j = this.x - 1; j < this.x + 1; j++)
+				if (i >= 0 && j >= 0 && !(i == this.x && j == this.y))
+					if (field[i][j] == 1) {
+						field[i][j].health += this.health / 2
+						this.health /= 2;
+					}
 
 		return this;
 	}
@@ -232,9 +240,4 @@ function draw() {
 
 	cells.forEach(function (a) { a.lifeCicle() });
 	cells = cells.filter(function(a) {return a.alifeQ});
-
-	for (var i = 0; i < fh; i++) 
-		for (var j = 0; j < fw; j++) 
-			if (field[i][j] != 1 && field[i][j] != 2 && field[i][j] != 3 && Math.random() > 0.995)
-				field[i][j] = 3;
 }
