@@ -1,9 +1,9 @@
 const START_HEALTH              = 100;
 const DNA_LENGTH                = 64;
-const HEAL_PER_ORG              = 25;
-const HEAL_PER_MIN              = 30;
+const HEAL_PER_ORG              = 40;
+const HEAL_PER_MIN              = 50;
 const HEALTH_REDUCING_PER_CICLE = 1;
-const HEALTH_NEEDED_TO_MULTIP   = 150;
+const HEALTH_NEEDED_TO_MULTIP   = 130;
 const MAX_SEED_ALIFETIME        = 5;
 const PLANTS_DNA_LENGTH         = 32;
 
@@ -132,7 +132,7 @@ function Animal(settings) {
 			field[this.y][this.x] = 0;
 			this.x = tx;
 			this.y = ty;
-			this.health += Math.floor(field[ty][tx].health / 4);
+			this.health += Math.floor(field[ty][tx].health / 1.68);
 			field[this.y][this.x] = this;
 		} else if (field[ty][tx] == 2) {
 			field[this.y][this.x] = 0;
@@ -146,6 +146,20 @@ function Animal(settings) {
 			this.y = ty;
 			this.health += HEAL_PER_MIN;
 			field[this.y][this.x] = this;
+		} else if (field[ty][tx] == 4) {
+			field[ty][tx].alifeQ = false;
+			field[this.y][this.x] = 0;
+			this.x = tx;
+			this.y = ty;
+			this.health += Math.floor(field[ty][tx].health / 2);
+			field[this.y][this.x] = this;
+		} else if (field[ty][tx] == 5) {
+			field[ty][tx].alifeQ = false;
+			field[this.y][this.x] = 0;
+			this.x = tx;
+			this.y = ty;
+			this.health += field[ty][tx].alifeTime * 10;
+			field[this.y][this.x] = this;
 		}
 	}
 
@@ -156,11 +170,11 @@ function Animal(settings) {
 					if (field[i][j] == 0) {
 						cells.push(new Animal({
 							start_pos: {x: j, y: i},
-							start_health: Math.round(this.health / 2),
+							start_health: Math.round(this.health / 1.5),
 							start_DNA: this.DNA,
-							mutantQ: Math.random() / 4
+							mutantQ: Math.random() < 0.25
 						}));
-						this.health = Math.round(this.health / 2);
+						this.health = Math.round(this.health / 1.5);
 						field[i][j] = cells[cells.length - 1];
 						break loop;
 					}
@@ -228,8 +242,9 @@ function Plant (settings) {
 		if (this.DNA[this.DNA_pos] < 8) {
 			this.photosynthesis();
 			this.DNA_pos = (this.DNA_pos + this.DNA[this.DNA_pos]) % PLANTS_DNA_LENGTH;
-		}
-		else
+		} else if (this.DNA[this.DNA_pos] < 16){
+
+		} else
 			this.DNA_pos = (this.DNA_pos + this.DNA[this.DNA_pos] % 8) % PLANTS_DNA_LENGTH;
 
 		this.health -= HEALTH_REDUCING_PER_CICLE;
@@ -263,7 +278,7 @@ function Plant (settings) {
 						cells.push(new Seed({
 							start_pos: {x: j, y: i},
 							start_DNA: this.DNA,
-							mutantQ: Math.random() / 4
+							mutantQ: Math.random() < 0.25
 						}));
 						this.health = Math.round(this.health / 2);
 						field[i][j] = cells[cells.length - 1];
@@ -291,11 +306,6 @@ function Seed (settings) {
 
 	this.lifeCicle = function() {
 		if (this.alifeTime > MAX_SEED_ALIFETIME) {
-			for (var i = 0; i < cells.length; i++)
-				if (cells[i] == this){
-					cells.splice(i, 1);
-					break;
-				}
 			cells.push(new Plant(this.setup));
 			field[this.y][this.x] = cells[cells.length - 1];
 			this.alifeQ = false;
