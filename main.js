@@ -138,18 +138,21 @@ function Cell(settings) {
 			this.y = ty;
 			this.health += Math.floor(field[ty][tx].health / 4);
 			field[this.y][this.x] = this;
+			this.color = 'red'
 		} else if (field[ty][tx] == 2) {
 			field[this.y][this.x] = 0;
 			this.x = tx;
 			this.y = ty;
 			this.health += HEAL_PER_ORG;
 			field[this.y][this.x] = this;
+			this.color = 'brown'
 		} else if (field[ty][tx] == 3) {
 			field[this.y][this.x] = 0;
 			this.x = tx;
 			this.y = ty;
 			this.health += HEAL_PER_MIN;
 			field[this.y][this.x] = this;
+			this.color = 'purple';
 		}
 	}
 
